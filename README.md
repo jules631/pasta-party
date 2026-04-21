@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pasta Party
+
+An artisan pasta e-commerce site built in a single session. Minimal, elegant, no scroll.
+
+## Stack
+
+- **Next.js 16** — App Router, TypeScript
+- **Tailwind CSS** — Cormorant Garamond + Jost, warm parchment palette
+- **Supabase** — Postgres for products and orders
+- **Stripe Checkout** — hosted, redirect-based payments
+
+## Features
+
+- Full-viewport product catalog — 6 artisan pastas, no scrolling
+- Minimalist SVG illustrations per pasta shape (spaghetti, ravioli, fettuccine, rigatoni, pappardelle, tagliatelle)
+- Cart persisted in localStorage
+- Stripe Checkout with order tracking
+- Webhook handler to mark orders paid on completion
 
 ## Getting Started
 
-First, run the development server:
-
+**1. Clone and install**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/jules631/pasta-party.git
+cd pasta-party
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**2. Environment variables**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env.local`:
+```env
+DATABASE_URL=your_supabase_postgres_url
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**3. Seed the database**
 
-## Learn More
+Run against your Postgres instance:
+```sql
+CREATE TABLE IF NOT EXISTS products (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL, slug TEXT UNIQUE NOT NULL,
+  description TEXT, price INTEGER NOT NULL,
+  image_emoji TEXT, stock INTEGER DEFAULT 100,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-To learn more about Next.js, take a look at the following resources:
+CREATE TABLE IF NOT EXISTS orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stripe_session_id TEXT UNIQUE NOT NULL,
+  status TEXT DEFAULT 'pending', items JSONB NOT NULL,
+  total INTEGER NOT NULL, customer_email TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**4. Run**
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Stripe Testing
 
-## Deploy on Vercel
+Use test card `4242 4242 4242 4242` with any future expiry and CVC.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  page.tsx               # product catalog (full viewport, no scroll)
+  cart/page.tsx          # order summary + checkout
+  success/page.tsx       # post-payment confirmation
+  cancel/page.tsx        # cancelled checkout
+  api/checkout/          # creates Stripe Checkout Session + saves order
+  api/webhooks/          # Stripe webhook → marks order paid
+components/
+  Header.tsx             # nav with live cart count
+  ProductRow.tsx         # single product row, add-to-cart
+  PastaShape.tsx         # SVG line illustrations per pasta type
+  CartProvider.tsx       # React context + localStorage cart
+lib/
+  db.ts                  # Postgres client
+  stripe.ts              # Stripe server client
+```
