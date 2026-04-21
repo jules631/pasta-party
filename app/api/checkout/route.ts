@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import sql from '@/lib/db'
 import { CartItem } from '@/types'
 
@@ -9,6 +9,8 @@ export async function POST(request: NextRequest) {
   if (!items || items.length === 0) {
     return Response.json({ error: 'Cart is empty' }, { status: 400 })
   }
+
+  const stripe = getStripe()
 
   const lineItems = items.map(({ product, quantity }) => ({
     price_data: {

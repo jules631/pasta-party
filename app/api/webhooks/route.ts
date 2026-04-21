@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import sql from '@/lib/db'
 
 export async function POST(request: NextRequest) {
@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
 
   if (!sig) return new Response('Missing signature', { status: 400 })
 
+  const stripe = getStripe()
   let event
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
